@@ -1,0 +1,25 @@
+{
+    "name": "auto-score-sa",
+    "version": "1.0.0",
+    "description": "Small script to refill your fleets in Star Atlas using their official SDK",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/raikoon/auto-score-sa.git"
+    },
+    "author": "",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/raikoon/auto-score-sa/issues"
+    },
+    "homepage": "https://github.com/raikoon/auto-score-sa#readme",
+    "dependencies": {
+        "@solana/web3.js": "^1.37.1",
+        "@staratlas/factory": "^0.1.26",
+        "moment": "^2.29.2"
+    },
+    "type": "module"
+}
