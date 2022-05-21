@@ -51,10 +51,10 @@ const refillFleet = async(fleetUnit, amounts) => {
             toolkit: 1
         }
     }
-    const refeed = await createRefeedInstruction(connection, player, player, amounts.food, fleetUnit.shipMint, mint.food, foodaccount, programId)
-    const refuel = await createRefuelInstruction(connection, player, player, amounts.fuel, fleetUnit.shipMint, mint.fuel, fuelaccount, programId)
-    const reammo = await createRearmInstruction(connection, player, player, amounts.arms, fleetUnit.shipMint, mint.ammo, ammoaccount, programId)
-    const retool = await createRepairInstruction(connection, player, player, amounts.toolkit, fleetUnit.shipMint, mint.tool, toolaccount, programId)
+    const refeed = await createRefeedInstruction(connection, player, player, amounts.food, fleetUnit.shipMint, mints.food, foodaccount, programId)
+    const refuel = await createRefuelInstruction(connection, player, player, amounts.fuel, fleetUnit.shipMint, mints.fuel, fuelaccount, programId)
+    const reammo = await createRearmInstruction(connection, player, player, amounts.arms, fleetUnit.shipMint, mints.ammo, ammoaccount, programId)
+    const retool = await createRepairInstruction(connection, player, player, amounts.toolkit, fleetUnit.shipMint, mints.tool, toolaccount, programId)
 
     let trans = new Transaction({ feePayer: player })
     let ins = new TransactionInstruction(refeed)
