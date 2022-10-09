@@ -1,11 +1,9 @@
-import factory, { getScoreEscrowAuthAccount } from "@staratlas/factory"
+import factory from "@staratlas/factory"
 import { Connection, PublicKey, Keypair, Transaction, TransactionInstruction } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import anchor from '@project-serum/anchor'
 import moment from "moment"
 import config from "./user-config.js";
-// console.log(config);
-
 
 const secretk = from_b58(config.privateKey);
 
@@ -36,11 +34,10 @@ const fuelaccount = await getAccount(player, mints.fuel);
 const ammoaccount = await getAccount(player, mints.ammo);
 
 const toolaccount = await getAccount(player, mints.tool);
-// console.log(foodaccount, fuelaccount, ammoaccount, toolaccount);
 const {
     web3
 } = anchor
-const { getScoreVarsAccount, getScoreVarsShipInfo, getScoreVarsInfo, getShipStakingAccountInfo, getScoreEscrowAccount, getAllFleetsForUserPublicKey, createRefeedInstruction, createRefuelInstruction, createRearmInstruction, createRepairInstruction } = factory;
+const {  getScoreVarsShipInfo, getAllFleetsForUserPublicKey, createRefeedInstruction, createRefuelInstruction, createRearmInstruction, createRepairInstruction } = factory;
 
 const refillFleet = async(fleetUnit, amounts) => {
     if (!amounts) {
@@ -55,8 +52,12 @@ const refillFleet = async(fleetUnit, amounts) => {
     const refuel = await createRefuelInstruction(connection, player, player, amounts.fuel, fleetUnit.shipMint, mints.fuel, fuelaccount, programId)
     const reammo = await createRearmInstruction(connection, player, player, amounts.arms, fleetUnit.shipMint, mints.ammo, ammoaccount, programId)
     const retool = await createRepairInstruction(connection, player, player, amounts.toolkit, fleetUnit.shipMint, mints.tool, toolaccount, programId)
+    const latestBlockHash = await connection.getLatestBlockhash();
 
-    let trans = new Transaction({ feePayer: player })
+    let trans = new Transaction({
+        feePayer: player,
+        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight
+    })
     let ins = new TransactionInstruction(refeed)
     trans.add(ins)
     let ins3 = new TransactionInstruction(refuel)
@@ -71,35 +72,28 @@ const refillFleet = async(fleetUnit, amounts) => {
 }
 
 const main = async() => {
-        const fleet = await getAllFleetsForUserPublicKey(connection, player, programId)
+    const fleet = await getAllFleetsForUserPublicKey(connection, player, programId)
 
-        console.log("Run at: " + moment().format("dddd, MMMM Do YYYY, h:mm:ss a"))
-        fleet.forEach(async(f, index) => {
-            const info = await getScoreVarsShipInfo(connection, programId, f.shipMint);
-            const real = await getShipStakingAccountInfo(connection, programId, f.shipMint, player);
-
-            const needsRefill = moment.unix(f.fedAtTimestamp.toNumber()).isBefore(moment().subtract(12, 'hours').subtract(60, 'seconds'))
-            console.log("Fleet " + f.shipMint + " | Last refill: " + moment.unix(f.fedAtTimestamp.toNumber()).format("dddd, MMMM Do YYYY, h:mm:ss a") + (needsRefill ? " -> NEEDS REFILL" : " OK"))
-
-            const halfday = {
-                food: parseInt(12 / ((((info.millisecondsToBurnOneFood / 1000) / 60) / 60) / f.shipQuantityInEscrow.toNumber())),
-                fuel: parseInt(12 / ((((info.millisecondsToBurnOneFuel / 1000) / 60) / 60) / f.shipQuantityInEscrow.toNumber())),
-                arms: parseInt(12 / ((((info.millisecondsToBurnOneArms / 1000) / 60) / 60) / f.shipQuantityInEscrow.toNumber())),
-                toolkit: parseInt(12 / ((((info.millisecondsToBurnOneToolkit / 1000) / 60) / 60) / f.shipQuantityInEscrow.toNumber()))
-            }
-            if (needsRefill) {
-                // console.log("Fill: ")
-                const tx = await refillFleet(f, halfday)
-                console.log(f.shipMint + " refilled: " + tx)
-            }
-
-
-        })
-
-
-
-    }
-    // this function takes private key from phantom and decodes to Uint8Array
+    console.log("Run at: " + moment().format("dddd, MMMM Do YYYY, h:mm:ss a"))
+    fleet.forEach(async(f, index) => {
+        const info = await getScoreVarsShipInfo(connection, programId, f.shipMint);
+        
+        const needsRefill = moment.unix(f.fedAtTimestamp.toNumber()).isBefore(moment().subtract(12, 'hours').subtract(60, 'seconds'))
+        console.log("Fleet " + f.shipMint + " | Last refill: " + moment.unix(f.fedAtTimestamp.toNumber()).format("dddd, MMMM Do YYYY, h:mm:ss a") + (needsRefill ? " -> NEEDS REFILL" : " OK"))
+        // Calculate 12h of supplies
+        const halfday = {
+            food: parseInt(12 / ((((info.millisecondsToBurnOneFood / 1000) / 60) / 60) / f.shipQuantityInEscrow.toNumber())),
+            fuel: parseInt(12 / ((((info.millisecondsToBurnOneFuel / 1000) / 60) / 60) / f.shipQuantityInEscrow.toNumber())),
+            arms: parseInt(12 / ((((info.millisecondsToBurnOneArms / 1000) / 60) / 60) / f.shipQuantityInEscrow.toNumber())),
+            toolkit: parseInt(12 / ((((info.millisecondsToBurnOneToolkit / 1000) / 60) / 60) / f.shipQuantityInEscrow.toNumber()))
+        }
+        if (needsRefill) {
+            const tx = await refillFleet(f, halfday)
+            console.log(f.shipMint + " refilled: " + tx)
+        }
+    })
+}
+// this function takes the private key exported from Phantom Wallet and decodes to Uint8Array
 function from_b58(S) {
     const A = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
     var d = [], //the array for storing the stream of decoded bytes
@@ -126,7 +120,4 @@ function from_b58(S) {
         b.push(d[j]); //append each byte to the result
     return new Uint8Array(b) //return the final byte array in Uint8Array format
 }
-
-
-
 main()
